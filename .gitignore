@@ -1,11 +1,41 @@
-node_modules/
-__pycache__/
+# Python specific
 *.pyc
+*.pyd
+*.pyo
+__pycache__
+.pytest_cache
+.ruff_cache
+.venv
+venv/
+env/
 .env
+
+# Editor/IDE specific (important for VS Code or other editors)
+.vscode/
+.idea/
+*.swp
+*.bak
+*~
+.DS_Store
+
+# Version Control
+.git/
+.gitignore
+.gitattributes
+
+# Docker specific (don't copy Docker related files into the app image)
+Dockerfile
 docker-compose.yml
+run_migrations.sh # We will copy this explicitly later, so ignoring the broad copy is fine.
+
+# Database files (if any are directly in backend, usually not for Postgres)
+*.sqlite3
+db.sqlite3
+
+# Logs and temporary files
 *.log
-frontend/dist/
-backend/venv/
-*.sqlite
-minio_data/
-postgres_data/
+tmp/
+temp/
+
+# Any specific data folders you don't want in the image
+data/

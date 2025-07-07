@@ -7,11 +7,16 @@ from typing import Generator
 from models.user import UserCreate, UserResponse, User
 from sqlalchemy.orm import Session
 from database import get_db
+import logging
+import os
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-SECRET_KEY = "your-secret-key"  # Replace with a secure key in production
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")  # Fallback to insecure key if not set
 ALGORITHM = "HS256"
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -35,28 +40,34 @@ def get_db_session() -> Generator[Session, None, None]:
 
 @router.post("/signup", response_model=UserResponse)
 async def signup(user: UserCreate, db: Session = Depends(get_db_session)):
+    logger.info(f"Signup attempt for email: {user.email}")
     hashed_password = get_password_hash(user.password)
     db_user = User(
         email=user.email,
         password_hash=hashed_password,
-        dialect=user.dialect,
+        dialect=user.dialect.value,
         proficiency_level=user.proficiency_level
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    logger.info(f"User created: {db_user.email}")
     return db_user
 
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db_session)):
+    logger.info(f"Login attempt for username: {form_data.username}")
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.password_hash):  # type: ignore
+        logger.error(f"Login failed for {form_data.username}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    logger.info(f"Login successful for {user.email}")
+    access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=timedelta(minutes=30)
+        data={"sub": user.email}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}

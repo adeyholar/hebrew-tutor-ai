@@ -15,7 +15,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    dialect = Column(Enum(Dialect), default=Dialect.MODERN)
+    # --- IMPORTANT CHANGE ON THE NEXT LINE ---
+    dialect = Column(Enum(Dialect, name='dialect', values_callable=lambda x: [e.value for e in x]), default=Dialect.MODERN)
     proficiency_level = Column(Integer, default=1)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
